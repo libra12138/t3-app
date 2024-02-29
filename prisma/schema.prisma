@@ -1,0 +1,115 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex", "fullTextSearch"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model captcha {
+  id        String   @id @default(cuid())
+  email     String
+  type      String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              user    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Account_userId_fkey")
+
+  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
+  @@index([userId], map: "Account_userId_fkey")
+}
+
+model poem {
+  id          String  @id
+  title       String
+  dynasty     String
+  writer      String
+  content     String  @db.Text
+  type        String
+  remark      String? @db.Text
+  translation String? @db.Text
+  shangxi     String? @db.Text
+  audioUrl    String?
+
+  @@fulltext([content], map: "Poem_content_idx")
+  @@fulltext([content, title], map: "Poem_content_title_idx")
+  @@fulltext([title], map: "Poem_title_idx")
+}
+
+model post {
+  id          Int      @id @default(autoincrement())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  createdById String
+  user        user     @relation(fields: [createdById], references: [id], map: "Post_createdById_fkey")
+
+  @@index([createdById], map: "Post_createdById_fkey")
+  @@index([name], map: "Post_name_idx")
+}
+
+model sentence {
+  id   String @id
+  name String @db.Text
+  from String
+
+  @@fulltext([name], map: "Sentence_name_idx")
+}
+
+model session {
+  id           String   @id
+  sessionToken String   @unique(map: "Session_sessionToken_key")
+  userId       String
+  expires      DateTime
+  user         user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Session_userId_fkey")
+
+  @@index([userId], map: "Session_userId_fkey")
+}
+
+model user {
+  id            String    @id
+  name          String?
+  email         String?   @unique(map: "User_email_key")
+  emailVerified DateTime?
+  image         String?
+  phone         String?   @unique(map: "User_phone_key")
+  password      String?
+  account       account[]
+  post          post[]
+  session       session[]
+}
+
+model verificationtoken {
+  identifier String
+  token      String   @unique(map: "VerificationToken_token_key")
+  expires    DateTime
+
+  @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
+}
+
+model writer {
+  id           String  @id
+  name         String
+  headImageUrl String?
+  simpleIntro  String? @db.Text
+  detailIntro  String? @db.Text
+
+  @@fulltext([name], map: "Writer_name_idx")
+}
